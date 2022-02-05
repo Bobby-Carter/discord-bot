@@ -1,0 +1,27 @@
+{
+  "name": "discord-bot",
+  "version": "1.0.0",
+  "description": "Test project for discord bot",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Bobby-Carter/discord-bot.git"
+  },
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/Bobby-Carter/discord-bot/issues"
+  },
+  "homepage": "https://github.com/Bobby-Carter/discord-bot#readme",
+  "dependencies": {
+    "@discordjs/rest": "^0.3.0",
+    "discord-api-types": "^0.26.1",
+    "discord.js": "^13.6.0"
+  },
+  "devDependencies": {
+    "eslint": "^8.8.0"
+  }
+}
