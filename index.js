@@ -1,5 +1,5 @@
 // Require the necessary discord.js classes
-const { Client, Intents } = require('discord.js');
+const { Client, Intents, Collection } = require('discord.js');
 const fs = require('fs');
 const { token } = require('./config.json');
 
@@ -11,9 +11,33 @@ const client = new Client({
 
 const eventFiles = fs.readdirSync('./events').filter(file => file.endsWith('.js'));
 
+let limeHandsCount = 0;
+
 // When the client is ready, run this code (only once)
 client.once('ready', () => {
-	console.log('Ready!');
+	console.log('Client is ready!');
+
+	// For each channel, get that channels messageManager, fetch the messages within, then for each message
+	// search for the wanted emoji key
+	const textChannels = client.channels.cache.filter(channel => channel.isText());
+	textChannels.each(textChannel => (textChannel.messages.fetch()
+		.then(messages => messages.filter(m => m.reactions.cache.forEach((val, key) => {
+			if (key === '939620562639147008') {
+				console.log(`Message with id ${val.id} has ${val.count} emoji(s)`);
+				limeHandsCount += val.count;
+				console.log(`Total Limehands: ${limeHandsCount}`);
+			}
+		})),
+		)
+	));
+	/*
+	textChannels.each(textChannel => (textChannel.messages.fetch()
+		.then(messages.each(m => m.reactions.cache.forEach((val, key) => {
+			if (key === '<:rubiks:939620562639147008>') {
+				console.log('found it!');
+			}
+		)))
+	));*/
 });
 
 // Login to Discord with your client's token
@@ -28,3 +52,4 @@ for (const file of eventFiles) {
 		client.on(event.name, (...args) => event.execute(...args));
 	}
 }
+
