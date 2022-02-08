@@ -70,7 +70,7 @@ async function getMessagesFromTextChannel(textChannel, localBefore = '', rateLim
 
 	await sleep(rateLimit);
 	// Make the api call
-	return await fetch(`https://discord.com/api/channels/${textChannel.id}/messages?limit=100${localBefore}`, query)
+	return fetch(`https://discord.com/api/channels/${textChannel.id}/messages?limit=100${localBefore}`, query)
 		.then(response => parseJSONData(response))
 		.then(jsonData => setupNextLoop(jsonData, textChannel));
 }
