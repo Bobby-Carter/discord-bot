@@ -1,7 +1,7 @@
 // Require the necessary discord.js classes
 const { Client, Intents } = require('discord.js');
 const fs = require('fs');
-const { token } = require('./config.json');
+const { token, emojiID } = require('./config.json');
 const fetch = require('node-fetch');
 
 // Create necessary instances
@@ -9,6 +9,17 @@ const client = new Client({
 	intents: [Intents.FLAGS.GUILDS, Intents.FLAGS.GUILD_MESSAGES, Intents.FLAGS.GUILD_MESSAGE_REACTIONS],
 	partials: ['MESSAGE', 'CHANNEL', 'REACTION'],
 });
+
+// Set up the discord api query
+const query = {
+	method: 'GET',
+	headers: {
+		Authorization: `Bot ${token}`,
+	},
+};
+
+// Global variable to hold previous api calls last message id
+let globalBefore = '';
 
 // Read files in event folder (for handling discord events)
 const eventFiles = fs.readdirSync('./events').filter(file => file.endsWith('.js'));
@@ -21,10 +32,10 @@ client.once('ready', () => {
 
 	const textChannels = client.channels.cache.filter(channel => channel.isText());
 
-	// TODO loop through every text channel
-	// TODO create a thread for each text channel and call getMess...loop recursively until data.length becomes false
+	// TODO loop through every text channel in sequence (rate limited)
+	// loop recursively until data.length becomes false
 	// first message of general = 939296691889254430
-	getMessagesFromTextChannel(textChannels.first())
+	getMessagesFromTextChannel(textChannels.last())
 		.then(data => console.log(data));
 
 
@@ -55,26 +66,37 @@ client.once('ready', () => {
 // https://discord.com/api/channels/{channel.id}/messages
 // https://discord.com/developers/docs/resources/channel#get-channel-messages
 // before can be '&before=${lastMessageID}' and the call will get 100 messages before that one
-async function getMessagesFromTextChannel(textChannel, before = '') {
-	console.log('get Messages Called');
-	// Set up the api query
-	const query = {
-		method: 'GET',
-		headers: {
-			Authorization: `Bot ${token}`,
-		},
-	};
+async function getMessagesFromTextChannel(textChannel, localBefore = '', rateLimit = 0) {
 
+	await sleep(rateLimit);
 	// Make the api call
-	return await fetch(`https://discord.com/api/channels/${textChannel.id}/messages?limit=100${before}`, query)
-		.then(response => testing(response))
-		.then(data => !data.length || getMessagesFromTextChannel(textChannel, `&before=${data[data.length - 1]}`));
+	return await fetch(`https://discord.com/api/channels/${textChannel.id}/messages?limit=100${localBefore}`, query)
+		.then(response => parseJSONData(response))
+		.then(jsonData => setupNextLoop(jsonData, textChannel));
 }
 
-async function testing(input) {
+async function parseJSONData(input) {
 	const output = await input.json();
-	console.log(output);
 	return output;
+}
+
+function setupNextLoop(jsonData, textChannel) {
+	if (jsonData.length) {
+		globalBefore = `&before=${jsonData[jsonData.length - 1].id}`;
+		return getMessagesFromTextChannel(textChannel, `&before=${jsonData[jsonData.length - 1].id}`);
+	}
+	else if (jsonData.retry_after) {
+		console.log(`Rate limited... waiting for ${jsonData.retry_after} ms`);
+		return getMessagesFromTextChannel(textChannel, globalBefore, jsonData.retry_after);
+	}
+	else {
+		console.log('Got all messages in the channel');
+		return;
+	}
+}
+
+function sleep(ms) {
+	return new Promise(resolve => setTimeout(resolve, ms));
 }
 
 
