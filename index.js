@@ -22,9 +22,10 @@ client.once('ready', () => {
 	const textChannels = client.channels.cache.filter(channel => channel.isText());
 
 	// TODO loop through every text channel
-	// TODO create a thread for each text channel and call getMess...loop recursively until no more before
-	getMessagesFromTextChannel(textChannels.last())
-		.then(data => console.log(data[data.length - 1]));
+	// TODO create a thread for each text channel and call getMess...loop recursively until data.length becomes false
+	// first message of general = 939296691889254430
+	getMessagesFromTextChannel(textChannels.first())
+		.then(data => console.log(data));
 
 
 	/*
@@ -55,6 +56,7 @@ client.once('ready', () => {
 // https://discord.com/developers/docs/resources/channel#get-channel-messages
 // before can be '&before=${lastMessageID}' and the call will get 100 messages before that one
 async function getMessagesFromTextChannel(textChannel, before = '') {
+	console.log('get Messages Called');
 	// Set up the api query
 	const query = {
 		method: 'GET',
@@ -65,7 +67,14 @@ async function getMessagesFromTextChannel(textChannel, before = '') {
 
 	// Make the api call
 	return await fetch(`https://discord.com/api/channels/${textChannel.id}/messages?limit=100${before}`, query)
-		.then(response => response.json());
+		.then(response => testing(response))
+		.then(data => !data.length || getMessagesFromTextChannel(textChannel, `&before=${data[data.length - 1]}`));
+}
+
+async function testing(input) {
+	const output = await input.json();
+	console.log(output);
+	return output;
 }
 
 
