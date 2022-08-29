@@ -2,7 +2,7 @@ module.exports = (sequelize, DataTypes) => {
 	return sequelize.define('messages', {
 		id: {
 			type: DataTypes.STRING,
-			unique: true,
+			primaryKey: true,
 			allowNull: false,
 		},
 		text: {

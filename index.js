@@ -4,6 +4,19 @@ const fs = require('fs');
 const { token, emojiID_limehands, emojiID_rubiks } = require('./config.json');
 const fetch = require('node-fetch');
 
+
+// Require database models
+const { Sequelize } = require('sequelize');
+const sequelize = new Sequelize('database', 'username', 'password', {
+	host: 'localhost',
+	dialect: 'sqlite',
+	logging: false,
+	storage: 'database.sqlite',
+});
+const { Users, Messages } = require('./dbObjects.js');
+const UsersDb = require('./models/Users.js')(sequelize, Sequelize.DataTypes);
+const MessagesDb = require('./models/Messages.js')(sequelize, Sequelize.DataTypes);
+
 // Create necessary instances
 const client = new Client({
 	intents: [Intents.FLAGS.GUILDS, Intents.FLAGS.GUILD_MESSAGES, Intents.FLAGS.GUILD_MESSAGE_REACTIONS],
@@ -39,15 +52,19 @@ client.once('ready', () => {
 	//	.then(data => console.log(data));
 
 
-
 	// For each channel, get that channels messageManager, fetch the messages within, then for each message
 	// search for the wanted emoji
 	// const textChannels = client.channels.cache.filter(channel => channel.isText());
 	textChannels.each(textChannel => (textChannel.messages.fetch()
 		.then(messages => messages.filter(m => m.reactions.cache.forEach((key, val) => {
 			if (val === emojiID_rubiks) {
-				console.log(`--- Searching channel ${textChannel} ---`);
-				console.log(`Message \"${m.cleanContent}\"\n with id ${m.id} by author ${m.author.username} has ${key.count} emoji(s)`);
+				console.log(`--- Target reaction found in text channel ${textChannel} ---`);
+				console.log(`Message "${m.cleanContent}"\n with id ${m.id} by author ${m.author.username} has ${key.count} emoji(s)`);
+				MessagesDb.upsert({ id: m.id,
+					text: m.cleanContent,
+					author: m.author.username,
+					link: m.url,
+					reactionsCount: key.count });
 				limeHandsCount += key.count;
 				console.log(`Total Limehands: ${limeHandsCount}`);
 			}
@@ -55,7 +72,7 @@ client.once('ready', () => {
 		)
 	));
 
-
+	verifyDb();
 	/*
 	textChannels.each(textChannel => (textChannel.messages.fetch()
 		.then(messages.each(m => m.reactions.cache.forEach((key, val) => {
@@ -100,6 +117,14 @@ function setupNextLoop(jsonData, textChannel) {
 
 function sleep(ms) {
 	return new Promise(resolve => setTimeout(resolve, ms));
+}
+
+async function verifyDb() {
+	console.log('\n--- Checking database ---');
+	const users = await Users.findAll();
+	users.forEach(u => console.log(`User_id: ${u.user_id}\nUsername: ${u.username}`));
+	const messages = await Messages.findAll();
+	messages.forEach(m => console.log(`Message_id: ${m.id}\nText: ${m.text}\nAuthor: ${m.author}\nLink: ${m.link}\nCount: ${m.reactionsCount}`));
 }
 
 
